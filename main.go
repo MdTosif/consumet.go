@@ -5,24 +5,14 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
-)
-
-// Key and IV should be kept secure and unique.
-var (
-	keyHex = "37911490979715163134003223491201"
-	key, _ = hex.DecodeString(keyHex)
-	ivHex  = "3134003223491201" // IV should be unique for each encryption operation.
-	iv, _  = hex.DecodeString(ivHex)
 )
 
 // Pad the data to the block size using PKCS#7 padding
@@ -108,44 +98,46 @@ func decrypt(data string, keyNum int) (string, error) {
 	return string(decryptedData), nil
 }
 
-func getGogocdnLink(epidoseUrl string) string {
+func getGogocdnLink(epidoseUrl string) (string, error) {
 	// URL for fetching data
 	baseURL := epidoseUrl //"https://anitaku.so/fairy-tail-2014-episode-1"
 
 	resp, err := http.Get(baseURL)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	// Parse HTML response
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	// Extract video URL
 	gogocdn := doc.Find("#load_anime > div > div > iframe").AttrOr("src", "")
-	return strings.TrimSpace(gogocdn)
+	return strings.TrimSpace(gogocdn), nil
 }
 
-func getDecryptedData(episodeUrl string) string {
+func getDecryptedData(episodeUrl string) (string, error) {
 	// Create a Resty Client
 	client := resty.New()
 
-	gogocdn := getGogocdnLink(episodeUrl)//"https://anitaku.so/sousou-no-frieren-no-mahou-episode-12"
+	gogocdn, err := getGogocdnLink(episodeUrl)
 
-	// println(gogocdn)
+	if err != nil {
+		return "", err
+	}
 
 	resp2, err := http.Get((gogocdn))
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer resp2.Body.Close()
 
 	doc2, err := goquery.NewDocumentFromReader(resp2.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	gogoUrl, _ := url.Parse(gogocdn)
@@ -158,24 +150,17 @@ func getDecryptedData(episodeUrl string) string {
 	// Decrypt the data
 	decryptedData, err := decrypt(scriptValue, 1)
 	if err != nil {
-		log.Fatal("Decryption error:", err)
+		return "", err
 	}
 
 	e, _ := encrypt(videoId)
-	// d,_ := decrypt(e)
-
-	// fmt.Println("Encrypted Data:", scriptValue, )
-	// fmt.Println("Decrypted Data:", decryptedData)
-	// fmt.Println("Video ID:", d)
 
 	newUrl, _ := url.ParseQuery(decryptedData)
 	newUrl.Set("id", e)
 	newUrl.Set("alias", videoId)
 
-	// println("url query: ", newUrl.Encode())
 
 	vidUrl := "https://" + gogoUrl.Host + "/encrypt-ajax.php?" + newUrl.Encode()
-	println(vidUrl)
 
 	http.Get(vidUrl)
 
@@ -184,7 +169,7 @@ func getDecryptedData(episodeUrl string) string {
 		Get(vidUrl)
 
 	if err != nil {
-		println("Error:", err.Error())
+		return "", err
 	}
 
 	var respAjax struct {
@@ -197,19 +182,23 @@ func getDecryptedData(episodeUrl string) string {
 	if err != nil {
 		println("Error:", err.Error())
 	}
-	return epp
+	return epp, nil
 }
 
 func main() {
-	
-	epp := getDecryptedData("https://anitaku.so/sousou-no-frieren-no-mahou-episode-12")
+
+	epp, err := getDecryptedData("https://anitaku.so/sousou-no-frieren-no-mahou-episode-12")
+	if err != nil {
+		println("Error:", err.Error())
+	}
 
 	var src struct {
 		Source []struct {
 			File string `json:"File"`
 		} `json:"source"`
 	}
-	err := json.Unmarshal([]byte(epp), &src)
+
+	err = json.Unmarshal([]byte(epp), &src)
 	if err != nil {
 		println("Error:", err.Error())
 	}
