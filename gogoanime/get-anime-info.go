@@ -4,10 +4,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
+
 type Episode struct {
 	Id     string
 	Number string
@@ -15,14 +17,15 @@ type Episode struct {
 }
 
 type AnimeInfo struct {
-	Title       string
-	Image       string
-	ReleaseDate string
-	IsDub       bool
-	Type        string
-	Status      string
-	Description string
-	Episodes    []Episode
+	Title        string
+	Image        string
+	ReleaseDate  string
+	IsDub        bool
+	Type         string
+	Status       string
+	Description  string
+	TotalEpisode int
+	Episodes     []Episode
 }
 
 func GetAnimeInfo(animeId string) AnimeInfo {
@@ -54,6 +57,9 @@ func GetAnimeInfo(animeId string) AnimeInfo {
 	epEnd, _ := doc.Find("#episode_page > li").Last().Find("a").Attr("ep_end")
 	movieId, _ := doc.Find("#movie_id").Attr("value")
 	alias, _ := doc.Find("#alias_anime").Attr("value")
+
+	te, _ := strconv.ParseInt(epEnd, 10, 0)
+	animeInfo.TotalEpisode = int(te)
 
 	params := url.Values{}
 	params.Set("ep_start", epStart)
