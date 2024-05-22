@@ -1,4 +1,4 @@
-module github/mdtosif/consumet
+module github/mdtosif/go-anime
 
 go 1.22.3
 
