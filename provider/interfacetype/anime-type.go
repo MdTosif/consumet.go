@@ -6,7 +6,6 @@ type Episode struct {
 	Url    string
 }
 
-
 type AnimeInfo struct {
 	Title        string
 	Image        string
@@ -16,6 +15,7 @@ type AnimeInfo struct {
 	Status       string
 	Description  string
 	TotalEpisode int
+	Url          string
 	Episodes     []Episode
 }
 

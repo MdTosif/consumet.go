@@ -163,8 +163,6 @@ func getDecryptedData(episodeUrl string) (string, error) {
 
 	vidUrl := "https://" + gogoUrl.Host + "/encrypt-ajax.php?" + newUrl.Encode()
 
-	http.Get(vidUrl)
-
 	resp, err := client.R().
 		SetHeader("X-Requested-With", "XMLHttpRequest").
 		Get(vidUrl)
